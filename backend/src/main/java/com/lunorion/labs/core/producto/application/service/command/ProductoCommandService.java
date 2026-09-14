@@ -2,6 +2,7 @@ package com.lunorion.labs.core.producto.application.service.command;
 
 import com.lunorion.labs.core.producto.application.dto.in.CreateCategoriaRequest;
 import com.lunorion.labs.core.producto.application.dto.in.CreateProductoRequest;
+import com.lunorion.labs.core.producto.application.dto.in.UpdateStockRequest;
 import com.lunorion.labs.core.producto.application.dto.out.CategoriaResponse;
 import com.lunorion.labs.core.producto.application.dto.out.ProductoResponse;
 import com.lunorion.labs.core.producto.application.mapper.ProductoMapper;
@@ -57,15 +58,24 @@ public class ProductoCommandService implements IProductoCommandPort {
 
     @Override
     public ProductoResponse quickCreate(CreateProductoRequest request) {
+        if (request.getCodigo() == null || request.getCodigo().isBlank()) {
+            request.setCodigo("Q-" + System.currentTimeMillis());
+        }
+        if (request.getStockActual() == null) {
+            request.setStockActual(0);
+        }
+        if (request.getStockMinimo() == null) {
+            request.setStockMinimo(0);
+        }
         Producto producto = mapper.toDomain(request);
         Producto saved = repository.save(producto);
         return mapper.toResponse(saved);
     }
 
     @Override
-    public void updateStock(String id, Integer cantidad) {
+    public void updateStock(String id, UpdateStockRequest request) {
         repository.findById(id).ifPresent(producto -> {
-            producto.updateStock(cantidad);
+            producto.updateStock(request.getCantidad());
             repository.save(producto);
         });
     }

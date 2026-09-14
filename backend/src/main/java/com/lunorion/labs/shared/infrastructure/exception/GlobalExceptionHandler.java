@@ -20,8 +20,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
+        String message = ex.getMessage();
+        if ("Credenciales invalidas".equals(message) || "Usuario inactivo".equals(message)
+                || "Token invalido o expirado".equals(message)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                    Map.of("error", message, "timestamp", LocalDateTime.now().toString())
+            );
+        }
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                Map.of("error", ex.getMessage(), "timestamp", LocalDateTime.now().toString())
+                Map.of("error", message, "timestamp", LocalDateTime.now().toString())
         );
     }
 }

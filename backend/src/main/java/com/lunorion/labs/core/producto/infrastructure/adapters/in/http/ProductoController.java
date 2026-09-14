@@ -1,15 +1,20 @@
 package com.lunorion.labs.core.producto.infrastructure.adapters.in.http;
 
 import com.lunorion.labs.core.producto.application.dto.in.CreateProductoRequest;
+import com.lunorion.labs.core.producto.application.dto.in.UpdateStockRequest;
 import com.lunorion.labs.core.producto.application.dto.out.ProductoResponse;
+import com.lunorion.labs.core.producto.application.dto.out.ReporteRotacionResponse;
 import com.lunorion.labs.core.producto.domain.ports.in.IProductoCommandPort;
 import com.lunorion.labs.core.producto.domain.ports.in.IProductoQueryPort;
+import com.lunorion.labs.core.inventario.application.dto.out.MovimientoStockResponse;
+import com.lunorion.labs.core.inventario.domain.ports.in.IMovimientoStockQueryPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/productos")
@@ -17,10 +22,14 @@ public class ProductoController {
 
     private final IProductoCommandPort commandService;
     private final IProductoQueryPort queryService;
+    private final IMovimientoStockQueryPort movimientoQueryService;
 
-    public ProductoController(IProductoCommandPort commandService, IProductoQueryPort queryService) {
+    public ProductoController(IProductoCommandPort commandService,
+                              IProductoQueryPort queryService,
+                              IMovimientoStockQueryPort movimientoQueryService) {
         this.commandService = commandService;
         this.queryService = queryService;
+        this.movimientoQueryService = movimientoQueryService;
     }
 
     @PostMapping
@@ -58,14 +67,14 @@ public class ProductoController {
     }
 
     @PatchMapping("/{id}/stock")
-    public ResponseEntity<Void> updateStock(@PathVariable String id, @RequestBody Integer cantidad) {
-        commandService.updateStock(id, cantidad);
+    public ResponseEntity<Void> updateStock(@PathVariable String id, @RequestBody UpdateStockRequest request) {
+        commandService.updateStock(id, request);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{id}/movimientos")
-    public ResponseEntity<List<?>> findMovimientosByProducto(@PathVariable String id) {
-        return ResponseEntity.ok(List.of());
+    public ResponseEntity<List<MovimientoStockResponse>> findMovimientosByProducto(@PathVariable String id) {
+        return ResponseEntity.ok(movimientoQueryService.findByProductoId(id));
     }
 
     @GetMapping("/stock-alertas")
@@ -74,8 +83,24 @@ public class ProductoController {
     }
 
     @GetMapping("/reporte-rotacion")
-    public ResponseEntity<List<ProductoResponse>> reporteRotacion(@RequestParam String tenantId) {
-        return ResponseEntity.ok(queryService.reporteRotacion(tenantId));
+    public ResponseEntity<List<ReporteRotacionResponse>> reporteRotacion(@RequestParam String tenantId) {
+        List<ProductoResponse> productos = queryService.reporteRotacion(tenantId);
+        List<ReporteRotacionResponse> reporte = productos.stream().map(p -> {
+            ReporteRotacionResponse item = new ReporteRotacionResponse();
+            item.setId(p.getId());
+            item.setCategoriaId(p.getCategoriaId());
+            item.setCodigo(p.getCodigo());
+            item.setNombre(p.getNombre());
+            item.setUnidadMedida(p.getUnidadMedida());
+            item.setPrecioCompra(p.getPrecioCompra());
+            item.setPrecioVenta(p.getPrecioVenta());
+            item.setStockActual(p.getStockActual());
+            item.setStockMinimo(p.getStockMinimo());
+            item.setTipo(p.getTipo());
+            item.setTotalMovimientos(movimientoQueryService.findByProductoId(p.getId()).size());
+            return item;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(reporte);
     }
 
     @PostMapping("/creacion-rapida")

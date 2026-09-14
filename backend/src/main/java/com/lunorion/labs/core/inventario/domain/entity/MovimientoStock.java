@@ -57,4 +57,6 @@ public class MovimientoStock extends BaseEntity {
     public String getDocumentoOrigen() { return documentoOrigen; }
     public String getObservacion() { return observacion; }
     public String getUsuarioId() { return usuarioId; }
+    public void setStockAnterior(BigDecimal stockAnterior) { this.stockAnterior = stockAnterior; markUpdated(); }
+    public void setStockPosterior(BigDecimal stockPosterior) { this.stockPosterior = stockPosterior; markUpdated(); }
 }
